@@ -1,0 +1,135 @@
+# Production: Next.js + Nginx + Certbot
+# Judge0 disabled — enable by uncommenting the judge0 sections below
+# Usage: docker compose up -d --build
+services:
+  # ── Next.js App ──
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: https://svit.prepzer0.co.in
+    env_file: .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Nginx Reverse Proxy ──
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      - nextjs
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── Certbot (SSL) ──
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew --webroot -w /var/www/certbot; done'"
+    networks:
+      - app-network
+
+  # ── Judge0 (DISABLED) ──
+  # Uncomment below to enable code execution for coding questions.
+  # Also add judge0-db-data and judge0-redis-data to the volumes section.
+  #
+  # judge0-server:
+  #   image: judge0/judge0:1.13.1
+  #   privileged: true
+  #   env_file: judge0.conf
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #   depends_on:
+  #     judge0-db:
+  #       condition: service_healthy
+  #     judge0-redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - app-network
+  #
+  # judge0-workers:
+  #   image: judge0/judge0:1.13.1
+  #   command: ["./scripts/workers"]
+  #   privileged: true
+  #   env_file: judge0.conf
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 2G
+  #   depends_on:
+  #     judge0-db:
+  #       condition: service_healthy
+  #     judge0-redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - app-network
+  #
+  # judge0-db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: judge0
+  #     POSTGRES_USER: judge0
+  #     POSTGRES_PASSWORD: judge0password
+  #   volumes:
+  #     - judge0-db-data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #   networks:
+  #     - app-network
+  #
+  # judge0-redis:
+  #   image: redis:7
+  #   command: redis-server --appendonly yes --requirepass judge0redispassword
+  #   volumes:
+  #     - judge0-redis-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "judge0redispassword", "ping"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 128M
+  #   networks:
+  #     - app-network
+
+volumes:
+  # judge0-db-data:
+  # judge0-redis-data:
+  certbot-etc:
+  certbot-var:
+  certbot-webroot:
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,0 +1,14 @@
+export { appRouter, type AppRouter } from "./_app";
+export { collegeRouter } from "./college";
+export { departmentRouter } from "./department";
+export { driveRouter } from "./drive";
+export { testRouter } from "./test";
+export { questionRouter } from "./question";
+export { studentRouter } from "./student";
+export { attemptRouter } from "./attempt";
+export { libraryRouter } from "./library";
+export { reportRouter } from "./report";
+export { statsRouter } from "./stats";
+export { userRouter } from "./user";
+export { notificationRouter } from "./notification";
+export { authRouter } from "./auth";

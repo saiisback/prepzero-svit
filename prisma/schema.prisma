@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  COLLEGE_ADMIN
+  STUDENT
+}
+
+enum DriveStatus {
+  DRAFT
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
+}
+
+enum QuestionType {
+  SINGLE_SELECT
+  MULTI_SELECT
+  CODING
+}
+
+enum CodingLanguage {
+  PYTHON
+  JAVA
+  C
+  CPP
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ResultVisibility {
+  AFTER_SUBMISSION
+  MANUAL_RELEASE
+}
+
+// Better Auth tables (extended)
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(STUDENT)
+  collegeId     String?
+  usn           String?   @unique
+  departmentId  String?
+  semester      Int?
+  isGraduated   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  college            College?            @relation(fields: [collegeId], references: [id])
+  department         Department?         @relation(fields: [departmentId], references: [id])
+  sessions           Session[]
+  accounts           Account[]
+  testAttempts       TestAttempt[]
+  libraryQuestions   LibraryQuestion[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id           String    @id @default(cuid())
+  userId       String
+  accountId    String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope        String?
+  password     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Application tables
+
+model College {
+  id           String   @id @default(cuid())
+  name         String
+  code         String   @unique
+  address      String?
+  website      String?
+  logoUrl      String?
+  contactEmail String?
+  contactPhone String?
+  isActive     Boolean  @default(true)
+  usnFormat     String?
+  usnExample    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users            User[]
+  placementDrives  PlacementDrive[]
+  departments      Department[]
+  categories       Category[]
+  libraryQuestions LibraryQuestion[]
+  notifications    Notification[]
+}
+
+model PlacementDrive {
+  id          String      @id @default(cuid())
+  collegeId   String
+  title       String
+  description String?
+  companyName String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      DriveStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  tests   Test[]
+}
+
+model Test {
+  id               String     @id @default(cuid())
+  driveId          String
+  title            String
+  description      String?
+  instructions     String?
+  durationMinutes  Int        @default(60)
+  totalMarks       Int        @default(0)
+  passingMarks     Int        @default(0)
+  shuffleQuestions Boolean    @default(false)
+  status           TestStatus @default(DRAFT)
+  startTime        DateTime?
+  endTime          DateTime?
+  allowedDepartmentIds  Json?    // string[] of department IDs
+  allowedSemesters      Json?    // number[] of semesters (1-8)
+  allowedStudentIds     Json?    // string[] of specific student IDs
+  resultVisibility ResultVisibility @default(AFTER_SUBMISSION)
+  showResults      Boolean         @default(false)
+  notificationSent Boolean         @default(false)
+  // Proctoring configuration
+  maxViolations              Int     @default(5)
+  enableTabSwitchDetection   Boolean @default(true)
+  enableFullscreenDetection  Boolean @default(true)
+  enableCopyPasteDetection   Boolean @default(true)
+  enableRefreshDetection     Boolean @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  drive     PlacementDrive @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  TestAttempt[]
+}
+
+model Question {
+  id               String       @id @default(cuid())
+  testId           String
+  questionText     String
+  codeBlock        String?
+  codeLanguage     String?
+  imageUrl         String?
+  imageUrls        Json?        // Array of image URL strings
+  questionType     QuestionType @default(SINGLE_SELECT)
+  options          Json         // Array of {id, text}
+  correctOptionIds Json         // Array of string IDs
+  marks            Int          @default(1)
+  negativeMarks    Float        @default(0)
+  explanation      String?
+  order            Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  test      Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+  testCases TestCase[]
+}
+
+model TestAttempt {
+  id               String        @id @default(cuid())
+  testId           String
+  studentId        String
+  startedAt        DateTime      @default(now())
+  submittedAt      DateTime?
+  status           AttemptStatus @default(IN_PROGRESS)
+  score            Float?
+  totalMarks       Int?
+  percentage       Float?
+  timeTakenSeconds    Int?
+  tabSwitchCount      Int           @default(0)
+  fullscreenExitCount Int           @default(0)
+  copyPasteAttempts   Int           @default(0)
+  refreshCount        Int           @default(0)
+  totalViolations     Int           @default(0)
+  maxViolations       Int           @default(5)
+  autoSubmitted       Boolean       @default(false)
+  activeSessionId     String?
+  lastHeartbeat       DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  test    Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@unique([testId, studentId])
+}
+
+model Answer {
+  id                String          @id @default(cuid())
+  attemptId         String
+  questionId        String
+  selectedOptionIds Json            // Array of string IDs
+  code              String?
+  language          CodingLanguage?
+  isCorrect         Boolean?
+  marksAwarded      Float?
+  answeredAt        DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  attempt  TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  collegeId String
+  name      String
+  code      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  users   User[]
+
+  @@unique([collegeId, name])
+}
+
+model TestCase {
+  id             String  @id @default(cuid())
+  questionId     String
+  input          String
+  expectedOutput String
+  isSample       Boolean @default(false)
+  order          Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  collegeId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  college   College? @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([name, collegeId])
+}
+
+model LibraryQuestion {
+  id               String       @id @default(cuid())
+  questionText     String
+  codeBlock        String?
+  codeLanguage     String?
+  imageUrls        Json?        // Array of image URL strings
+  questionType     QuestionType @default(SINGLE_SELECT)
+  options          Json         // Array of {id, text}
+  correctOptionIds Json         // Array of string IDs
+  marks            Int          @default(1)
+  negativeMarks    Float        @default(0)
+  explanation      String?
+  categories       String[]
+  difficulty       Difficulty   @default(MEDIUM)
+  collegeId        String?      // null = global, non-null = private (college-specific)
+  createdById      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  college          College?            @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdBy        User                @relation(fields: [createdById], references: [id])
+  testCases        LibraryTestCase[]
+}
+
+model LibraryTestCase {
+  id                String  @id @default(cuid())
+  libraryQuestionId String
+  input             String
+  expectedOutput    String
+  isSample          Boolean @default(false)
+  order             Int     @default(0)
+
+  libraryQuestion LibraryQuestion @relation(fields: [libraryQuestionId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  collegeId String
+  type      String   // e.g. "SESSION_CONFLICT"
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?    // extra data (studentId, testId, etc.)
+  createdAt DateTime @default(now())
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}

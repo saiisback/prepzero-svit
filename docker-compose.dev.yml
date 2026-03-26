@@ -1,0 +1,68 @@
+# Local development: Next.js only (no Judge0).
+# Run: docker compose -f docker-compose.dev.yml up -d
+# Then: npm run dev
+#
+# To enable Judge0 for coding questions, uncomment the judge0 sections below
+# and add judge0-db-data, judge0-redis-data to volumes.
+services:
+  # placeholder to keep compose valid when Judge0 is disabled
+  app:
+    image: alpine:latest
+    command: ["echo", "Dev environment ready. Run npm run dev separately."]
+
+  # ── Judge0 (DISABLED) ──
+  # judge0-server:
+  #   image: judge0/judge0:1.13.1
+  #   ports:
+  #     - "2358:2358"
+  #   privileged: true
+  #   env_file: judge0.conf
+  #   restart: unless-stopped
+  #   depends_on:
+  #     judge0-db:
+  #       condition: service_healthy
+  #     judge0-redis:
+  #       condition: service_healthy
+  #
+  # judge0-workers:
+  #   image: judge0/judge0:1.13.1
+  #   command: ["./scripts/workers"]
+  #   privileged: true
+  #   env_file: judge0.conf
+  #   restart: unless-stopped
+  #   depends_on:
+  #     judge0-db:
+  #       condition: service_healthy
+  #     judge0-redis:
+  #       condition: service_healthy
+  #
+  # judge0-db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: judge0
+  #     POSTGRES_USER: judge0
+  #     POSTGRES_PASSWORD: judge0password
+  #   volumes:
+  #     - judge0-db-data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   restart: unless-stopped
+  #
+  # judge0-redis:
+  #   image: redis:7
+  #   command: redis-server --appendonly yes --requirepass judge0redispassword
+  #   volumes:
+  #     - judge0-redis-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "judge0redispassword", "ping"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   restart: unless-stopped
+
+volumes: {}
+  # judge0-db-data:
+  # judge0-redis-data:

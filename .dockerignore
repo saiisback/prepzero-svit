@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+.agents
+.agent
+.claude
+.vercel
+npm-debug.log*
+bun.lock
+test-students.csv
+test-eligibility.csv

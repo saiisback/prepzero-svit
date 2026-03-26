@@ -1,0 +1,26 @@
+name,usn,email,department
+Chirag CE-S8-27,DEMO2026CE08027,ce.sem8.s27@demo.com,CE
+Sahil CS-S2-17,DEMO2026CS02017,cs.sem2.s17@demo.com,CS
+Meera CS-S6-9,DEMO2026CS06009,cs.sem6.s9@demo.com,CS
+Krishna ECE-S2-8,DEMO2026ECE02008,ece.sem2.s8@demo.com,ECE
+Tanvi CS-S6-20,DEMO2026CS06020,cs.sem6.s20@demo.com,CS
+Zara CS-S2-24,DEMO2026CS02024,cs.sem2.s24@demo.com,CS
+Diya ECE-S6-5,DEMO2026ECE06005,ece.sem6.s5@demo.com,ECE
+Tanvi ECE-S2-20,DEMO2026ECE02020,ece.sem2.s20@demo.com,ECE
+Vihaan CS-S2-22,DEMO2026CS02022,cs.sem2.s22@demo.com,CS
+Varun CS-S4-21,DEMO2026CS04021,cs.sem4.s21@demo.com,CS
+Neha ECE-S4-10,DEMO2026ECE04010,ece.sem4.s10@demo.com,ECE
+Diya CS-S6-5,DEMO2026CS06005,cs.sem6.s5@demo.com,CS
+Neha CS-S6-10,DEMO2026CS06010,cs.sem6.s10@demo.com,CS
+Yash CS-S6-23,DEMO2026CS06023,cs.sem6.s23@demo.com,CS
+Neha CS-S2-10,DEMO2026CS02010,cs.sem2.s10@demo.com,CS
+Vihaan ECE-S2-22,DEMO2026ECE02022,ece.sem2.s22@demo.com,ECE
+Sahil ECE-S2-17,DEMO2026ECE02017,ece.sem2.s17@demo.com,ECE
+Saanvi ECE-S4-16,DEMO2026ECE04016,ece.sem4.s16@demo.com,ECE
+Farhan CS-S4-30,DEMO2026CS04030,cs.sem4.s30@demo.com,CS
+Shreya CS-S8-18,DEMO2026CS08018,cs.sem8.s18@demo.com,CS
+Zara CS-S6-24,DEMO2026CS06024,cs.sem6.s24@demo.com,CS
+Siddharth CS-S4-19,DEMO2026CS04019,cs.sem4.s19@demo.com,CS
+Chirag ECE-S2-27,DEMO2026ECE02027,ece.sem2.s27@demo.com,ECE
+Siddharth ECE-S4-19,DEMO2026ECE04019,ece.sem4.s19@demo.com,ECE
+Esha CS-S8-29,DEMO2026CS08029,cs.sem8.s29@demo.com,CS

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,6 @@ const roleMeta: Record<
 };
 
 export function Topbar() {
-  const router = useRouter();
   const { user: authUser } = useAuth();
   const user = {
     name: authUser?.name ?? "",
@@ -40,7 +39,8 @@ export function Topbar() {
 
   async function handleSignOut() {
     await signOut();
-    router.push("/login");
+    // Use hard navigation to clear all cached server component data
+    window.location.href = "/login";
   }
 
   const initials = user.name

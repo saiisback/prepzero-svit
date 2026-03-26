@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -17,6 +21,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,7 +46,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Loader2,
   Search,
+  Trash2,
 } from "lucide-react";
 import { DownloadButton } from "./download-button";
 import { EmailButton } from "./email-button";
@@ -68,10 +85,15 @@ export interface TestReportData {
 const PAGE_SIZE = 10;
 
 export function ReportTable({ reports }: { reports: TestReportData[] }) {
+  const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [driveFilter, setDriveFilter] = useState("ALL");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteMutation = trpc.test.delete.useMutation();
 
   // Unique drive names for filter dropdown
   const driveNames = Array.from(
@@ -117,6 +139,41 @@ export function ReportTable({ reports }: { reports: TestReportData[] }) {
     setExpandedId(null);
   }
 
+  function toggleSelection(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllOnPage() {
+    const pageIds = paginatedReports.map((r) => r.id);
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await Promise.all(ids.map((id) => deleteMutation.mutateAsync({ id })));
+      toast.success(`${ids.length} report${ids.length !== 1 ? "s" : ""} deleted`);
+      setSelectedIds(new Set());
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete some reports");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Search and Filter */}
@@ -150,6 +207,35 @@ export function ReportTable({ reports }: { reports: TestReportData[] }) {
             {filteredReports.length} result{filteredReports.length !== 1 ? "s" : ""}
           </p>
         )}
+        {selectedIds.size > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="size-4" />
+                Delete {selectedIds.size} Report{selectedIds.size !== 1 ? "s" : ""}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {selectedIds.size} Report{selectedIds.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the selected test{selectedIds.size !== 1 ? "s" : ""} and all associated attempts, answers, and report data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {/* Report cards */}
@@ -157,7 +243,15 @@ export function ReportTable({ reports }: { reports: TestReportData[] }) {
         <div className="rounded-lg border border-border py-12 text-center text-muted-foreground">
           No tests match your search.
         </div>
-      ) : null}
+      ) : (
+        <div className="flex items-center gap-2 px-1">
+          <Checkbox
+            checked={paginatedReports.length > 0 && paginatedReports.every((r) => selectedIds.has(r.id))}
+            onCheckedChange={toggleAllOnPage}
+          />
+          <span className="text-xs text-muted-foreground">Select all on page</span>
+        </div>
+      )}
 
       {paginatedReports.map((report) => {
         const isExpanded = expandedId === report.id;
@@ -175,6 +269,12 @@ export function ReportTable({ reports }: { reports: TestReportData[] }) {
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(report.id); } }}
               className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-accent/40 transition-colors cursor-pointer"
             >
+              <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                <Checkbox
+                  checked={selectedIds.has(report.id)}
+                  onCheckedChange={() => toggleSelection(report.id)}
+                />
+              </div>
               {isExpanded ? (
                 <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
               ) : (

@@ -42,6 +42,7 @@ import {
   type CSVParseError,
 } from "@/lib/csv-parser";
 import { fileToCSVText } from "@/lib/spreadsheet";
+import { QuestionContent } from "@/components/ui/question-content";
 
 type Phase = "select" | "preview" | "uploading" | "save-to-library";
 
@@ -493,6 +494,18 @@ export default function BulkUploadPage() {
                   className="font-mono text-sm"
                 />
               </div>
+
+              {/* Preview */}
+              {(editQ.questionText.trim() || editQ.codeBlock?.trim()) && (
+                <div className="rounded-lg border p-4">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Preview</p>
+                  <QuestionContent
+                    questionText={editQ.questionText}
+                    codeBlock={editQ.codeBlock || null}
+                    codeLanguage={editQ.codeLanguage || null}
+                  />
+                </div>
+              )}
 
               {/* Type + Marks */}
               <div className="grid grid-cols-3 gap-3">

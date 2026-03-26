@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { Eye, EyeOff, Loader2, Lock, Mail, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,18 +30,20 @@ export default function LoginPage() {
       const session = await res.json();
       const role = session?.user?.role;
 
+      // Use hard navigation to force server components to re-render
+      // with the new user's session (avoids stale cached data)
       switch (role) {
         case "SUPER_ADMIN":
-          router.push("/admin");
+          window.location.href = "/admin";
           break;
         case "COLLEGE_ADMIN":
-          router.push("/college");
+          window.location.href = "/college";
           break;
         case "STUDENT":
-          router.push("/student");
+          window.location.href = "/student";
           break;
         default:
-          router.push("/");
+          window.location.href = "/";
       }
     } catch {
       toast.error("An error occurred during login");

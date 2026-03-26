@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { revalidatePath } from "next/cache";
 import { Prisma, CodingLanguage } from "@/generated/prisma/client";
 import { router, protectedProcedure, collegeAdminProcedure, studentProcedure } from "../trpc";
 import { createTestSchema, updateTestSchema } from "../schemas";
@@ -23,8 +24,10 @@ export const testRouter = router({
       if (user.role === "COLLEGE_ADMIN") {
         where.drive = { collegeId: user.collegeId };
       } else if (user.role === "STUDENT") {
+        const now = new Date();
         where.drive = { collegeId: user.collegeId };
         where.status = "PUBLISHED";
+        where.OR = [{ endTime: null }, { endTime: { gte: now } }];
       }
 
       const allTests = await ctx.prisma.test.findMany({
@@ -201,6 +204,11 @@ export const testRouter = router({
         );
       }
 
+      // Invalidate reports cache when test is closed
+      if (updated.status === "CLOSED") {
+        revalidatePath("/college/reports");
+      }
+
       return updated;
     }),
 
@@ -219,6 +227,7 @@ export const testRouter = router({
       }
 
       await ctx.prisma.test.delete({ where: { id: input.id } });
+      revalidatePath("/college/reports");
       return { message: "Test deleted successfully" };
     }),
 

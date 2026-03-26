@@ -51,7 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
-import { Loader2, Search, BookOpen, Pencil, Trash2, Tag, Plus, Check, X, Upload, Globe, Lock } from "lucide-react";
+import { Loader2, Search, BookOpen, Pencil, Trash2, Tag, Plus, Check, X, Upload, Globe, Lock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 interface LibraryQuestion {
   id: string;
@@ -132,7 +132,7 @@ export default function CollegeLibraryPage() {
     difficulty: (difficulty || undefined) as "EASY" | "MEDIUM" | "HARD" | undefined,
     questionType: (type || undefined) as "SINGLE_SELECT" | "MULTI_SELECT" | "CODING" | undefined,
     page,
-    limit: 20,
+    limit: 10,
   };
   const { data, isLoading } = trpc.library.listQuestions.useQuery(
     questionsInput as Parameters<typeof trpc.library.listQuestions.useQuery>[0],
@@ -737,32 +737,86 @@ export default function CollegeLibraryPage() {
             </Table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {(data.page - 1) * data.limit + 1}–
-                {Math.min(data.page * data.limit, data.total)} of {data.total}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setParam("page", String(Math.max(1, page - 1)))}
-                  disabled={page <= 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setParam("page", String(page + 1))}
-                  disabled={page >= data.totalPages}
-                >
-                  Next
-                </Button>
+          {data && data.total > 0 && (() => {
+            const { totalPages } = data;
+            const pages: (number | "ellipsis")[] = [];
+
+            if (totalPages <= 7) {
+              for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+              pages.push(1);
+              if (page > 3) pages.push("ellipsis");
+              for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+                pages.push(i);
+              }
+              if (page < totalPages - 2) pages.push("ellipsis");
+              pages.push(totalPages);
+            }
+
+            return (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(data.page - 1) * data.limit + 1}–
+                  {Math.min(data.page * data.limit, data.total)} of {data.total}
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => setParam("page", "1")}
+                      disabled={page <= 1}
+                    >
+                      <ChevronsLeft className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => setParam("page", String(page - 1))}
+                      disabled={page <= 1}
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    {pages.map((p, i) =>
+                      p === "ellipsis" ? (
+                        <span key={`e-${i}`} className="px-1 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === page ? "default" : "outline"}
+                          size="icon"
+                          className="size-8 text-xs"
+                          onClick={() => setParam("page", String(p))}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => setParam("page", String(page + 1))}
+                      disabled={page >= totalPages}
+                    >
+                      <ChevronRight className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => setParam("page", String(totalPages))}
+                      disabled={page >= totalPages}
+                    >
+                      <ChevronsRight className="size-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
         </>
       )}
     </div>
